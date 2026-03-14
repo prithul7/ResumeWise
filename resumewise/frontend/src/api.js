@@ -1,6 +1,4 @@
-const BASE = process.env.NODE_ENV === 'production' 
-  ? window.location.origin + "/api"
-  : "http://localhost:5001/api";
+const BASE = "http://localhost:5001/api";
 
 async function req(method, path, body, token) {
   const headers = { "Content-Type": "application/json" };
