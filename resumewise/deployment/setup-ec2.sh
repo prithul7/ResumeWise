@@ -25,10 +25,10 @@ echo "📁 Creating application directory..."
 sudo mkdir -p /var/www/resumewise
 sudo chown ubuntu:ubuntu /var/www/resumewise
 
-# Clone repository (replace with your repo URL)
+# Clone repository
 echo "📥 Cloning repository..."
 cd /var/www/resumewise
-git clone https://github.com/your-username/resumewise.git .
+git clone https://github.com/prithul7/ResumeWise.git .
 
 # Setup Python virtual environment
 echo "🐍 Setting up Python virtual environment..."
