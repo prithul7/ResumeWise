@@ -121,7 +121,7 @@ server {
     gzip on;
     gzip_vary on;
     gzip_min_length 1024;
-    gzip_proxied expired no-cache no-store private must-revalidate auth;
+    gzip_proxied expired no-cache no-store private auth;
     gzip_types text/plain text/css text/xml text/javascript application/javascript application/xml+rss application/json;
 }
 EOF
@@ -131,6 +131,11 @@ sudo ln -sf /etc/nginx/sites-available/resumewise /etc/nginx/sites-enabled/
 sudo rm -f /etc/nginx/sites-enabled/default
 
 # Test Nginx configuration
+sudo nginx -t
+
+echo "🔑 Please edit environment file: sudo nano /var/www/resumewise/backend/.env"
+echo "🌐 Please edit domain in Nginx config: sudo nano /etc/nginx/sites-available/resumewise"
+echo "   Replace 'your-domain.com' with 'prithul-devops.com'"
 sudo nginx -t
 
 # Enable and start services

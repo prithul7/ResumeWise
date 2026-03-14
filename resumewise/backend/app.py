@@ -14,7 +14,7 @@ app_config = config[env]
 app = Flask(__name__)
 app.config.from_object(app_config)
 
-CORS(app, resources={r"/api/*": {"origins": ["https://yourdomain.com", "http://localhost:3000", "http://localhost:5173"]}})
+CORS(app, resources={r"/api/*": {"origins": ["https://prithul-devops.com", "http://localhost:3000", "http://localhost:5173"]}})
 
 # Register blueprints
 app.register_blueprint(auth_bp,   url_prefix='/api/auth')
