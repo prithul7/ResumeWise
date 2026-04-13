@@ -7,8 +7,7 @@ from middleware import token_required
 
 cover_bp = Blueprint('cover', __name__)
 
-ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY', '')
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '').strip('"').strip("'")
 
 COVER_PROMPT = """You are an expert cover letter writer. Write a compelling, personalised cover letter based on the resume and job details provided.
 
@@ -47,21 +46,20 @@ def generate():
         + (f"Additional context: {extra}" if extra else "")
     )
 
-    headers = {
-        'Content-Type':      'application/json',
-        'x-api-key':         ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-    }
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
+    headers = {'Content-Type': 'application/json'}
     body = {
-        'model':      'claude-sonnet-4-20250514',
-        'max_tokens': 1200,
-        'system':     COVER_PROMPT,
-        'messages':   [{'role': 'user', 'content': user_msg}],
+        "systemInstruction": {"parts": [{"text": COVER_PROMPT}]},
+        "contents": [{"parts": [{"text": user_msg}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.0
+        }
     }
     try:
-        resp  = requests.post(ANTHROPIC_URL, headers=headers, json=body, timeout=60)
+        resp = requests.post(url, headers=headers, json=body, timeout=60)
         resp.raise_for_status()
-        raw   = resp.json()['content'][0]['text']
+        raw = resp.json()['candidates'][0]['content']['parts'][0]['text']
         clean = raw.replace('```json', '').replace('```', '').strip()
         result = json.loads(clean)
     except Exception as e:
@@ -96,6 +94,22 @@ def history():
     ).fetchall()
     db.close()
     return jsonify([dict(r) for r in rows])
+
+
+# ── SINGLE GET ───────────────────────────────────────────
+@cover_bp.route('/history/<int:letter_id>', methods=['GET'])
+@token_required
+def get_letter(letter_id):
+    db  = get_db()
+    row = db.execute(
+        'SELECT * FROM cover_letters WHERE id = ? AND user_id = ?',
+        (letter_id, request.user_id)
+    ).fetchone()
+    db.close()
+    if not row:
+        return jsonify({'error': 'Not found'}), 404
+    return jsonify(dict(row)) 
+
 
 
 # ── DELETE ───────────────────────────────────────────────

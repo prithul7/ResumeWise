@@ -11,6 +11,7 @@ export default function HistoryPage() {
   const [resumes, setResumes] = useState([]);
   const [letters, setLetters] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [viewItem, setViewItem] = useState(null);
 
   useEffect(() => { loadAll(); }, []);
 
@@ -33,6 +34,15 @@ export default function HistoryPage() {
   const delLetter = async (id) => {
     await api.delete(`/cover/history/${id}`, token);
     setLetters(ls => ls.filter(l => l.id !== id));
+  };
+
+  const viewDetail = async (type, id) => {
+    try {
+      const data = await api.get(`/${type}/history/${id}`, token);
+      setViewItem({ type, data });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   const fmt = (dt) => new Date(dt).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" });
@@ -69,7 +79,7 @@ export default function HistoryPage() {
           ? <Empty text="No resume analyses yet. Head to Analyse to get started!" />
           : <div style={{ display: "grid", gap: 12 }}>
               {resumes.map(r => (
-                <div key={r.id} style={{ ...glass, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+                <div key={r.id} onClick={() => viewDetail("resume", r.id)} style={{ ...glass, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap", cursor: "pointer" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
                       <span style={{ width: 36, height: 36, borderRadius: 10, background: sc(r.score)+"22", border: `1px solid ${sc(r.score)}44`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 15, fontWeight: 800, color: sc(r.score), flexShrink: 0 }}>{r.score}</span>
@@ -80,7 +90,7 @@ export default function HistoryPage() {
                     </div>
                     <p style={{ fontSize: 12.5, color: "rgba(240,242,248,.38)", lineHeight: 1.5, margin: 0 }}>{r.preview}…</p>
                   </div>
-                  <button onClick={() => delResume(r.id)}
+                  <button onClick={(e) => { e.stopPropagation(); delResume(r.id); }}
                     style={{ padding: "5px 13px", borderRadius: 8, border: "1px solid rgba(248,113,113,.25)", background: "rgba(248,113,113,.08)", color: "#fca5a5", fontSize: 12.5, cursor: "pointer", fontFamily: "Inter,sans-serif", flexShrink: 0 }}>
                     🗑 Delete
                   </button>
@@ -95,7 +105,7 @@ export default function HistoryPage() {
           ? <Empty text="No cover letters yet. Head to Cover Letter to generate one!" />
           : <div style={{ display: "grid", gap: 12 }}>
               {letters.map(l => (
-                <div key={l.id} style={{ ...glass, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap" }}>
+                <div key={l.id} onClick={() => viewDetail("cover", l.id)} style={{ ...glass, display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 14, flexWrap: "wrap", cursor: "pointer" }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 6 }}>
                       <span style={{ fontSize: 22 }}>✉️</span>
@@ -106,13 +116,53 @@ export default function HistoryPage() {
                     </div>
                     <p style={{ fontSize: 12.5, color: "rgba(240,242,248,.38)", lineHeight: 1.5, margin: 0 }}>{l.preview}…</p>
                   </div>
-                  <button onClick={() => delLetter(l.id)}
+                  <button onClick={(e) => { e.stopPropagation(); delLetter(l.id); }}
                     style={{ padding: "5px 13px", borderRadius: 8, border: "1px solid rgba(248,113,113,.25)", background: "rgba(248,113,113,.08)", color: "#fca5a5", fontSize: 12.5, cursor: "pointer", fontFamily: "Inter,sans-serif", flexShrink: 0 }}>
                     🗑 Delete
                   </button>
                 </div>
               ))}
             </div>
+      )}
+
+      {/* Modal */}
+      {viewItem && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, background: "rgba(0,0,0,.75)", backdropFilter: "blur(5px)", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }} onClick={() => setViewItem(null)}>
+          <div style={{ background: "#0a0c14", border: "1px solid rgba(139,92,246,.3)", borderRadius: 16, width: "100%", maxWidth: 640, maxHeight: "85vh", overflowY: "auto", position: "relative", boxShadow: "0 20px 40px rgba(0,0,0,.5)" }} onClick={e => e.stopPropagation()}>
+            <div style={{ position: "sticky", top: 0, background: "rgba(10,12,20,.9)", backdropFilter: "blur(12px)", padding: "16px 22px", borderBottom: "1px solid rgba(255,255,255,.05)", display: "flex", justifyContent: "space-between", alignItems: "center", zIndex: 10 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 700, color: "#f0f2f8" }}>
+                {viewItem.type === "resume" ? `Resume Analysis #${viewItem.data.id}` : (viewItem.data.job_title || "Cover Letter")}
+              </h3>
+              <button onClick={() => setViewItem(null)} style={{ background: "transparent", border: "none", color: "rgba(255,255,255,.5)", fontSize: 26, cursor: "pointer", lineHeight: 1 }}>&times;</button>
+            </div>
+            
+            <div style={{ padding: 24 }}>
+              {viewItem.type === "resume" ? (
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 18, marginBottom: 24 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: "50%", background: `conic-gradient(${sc(viewItem.data.score)} ${viewItem.data.score*3.6}deg, rgba(255,255,255,.05) 0deg)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                      <div style={{ background: "#0a0c14", width: 52, height: 52, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 800, color: sc(viewItem.data.score) }}>{viewItem.data.score}</div>
+                    </div>
+                    <div style={{ fontSize: 13.5, color: "rgba(255,255,255,.7)", lineHeight: 1.6 }}>{viewItem.data.result?.summary}</div>
+                  </div>
+                  <h4 style={{ color: "#22d3a5", marginBottom: 12, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>✅ Strengths</h4>
+                  <ul style={{ paddingLeft: 20, marginBottom: 24, fontSize: 13.5, color: "rgba(255,255,255,.65)", lineHeight: 1.6 }}>{viewItem.data.result?.strengths?.map((s,i) => <li key={i} style={{marginBottom:6}}>{s}</li>)}</ul>
+                  <h4 style={{ color: "#f59e0b", marginBottom: 12, fontSize: 13, textTransform: "uppercase", letterSpacing: 1 }}>🔧 Improvements</h4>
+                  <ul style={{ paddingLeft: 20, marginBottom: 20, fontSize: 13.5, color: "rgba(255,255,255,.65)", lineHeight: 1.6 }}>{viewItem.data.result?.improvements?.map((s,i) => <li key={i} style={{marginBottom:6}}>{s}</li>)}</ul>
+                  {viewItem.data.result?.elevatorPitch && (
+                    <div style={{ padding: 14, background: "rgba(139,92,246,.08)", border: "1px solid rgba(139,92,246,.2)", borderRadius: 12, fontSize: 13, fontStyle: "italic", color: "#c4b5fd", lineHeight: 1.6 }}>
+                      "{viewItem.data.result?.elevatorPitch}"
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div style={{ whiteSpace: "pre-wrap", fontSize: 14, color: "rgba(255,255,255,.75)", lineHeight: 1.8, fontFamily: "serif" }}>
+                  {viewItem.data.letter_text}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

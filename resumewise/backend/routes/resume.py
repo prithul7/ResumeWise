@@ -7,10 +7,11 @@ from middleware import token_required
 
 resume_bp = Blueprint('resume', __name__)
 
-ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
-ANTHROPIC_KEY = os.environ.get('ANTHROPIC_API_KEY', '')   # set in env
+GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '').strip('"').strip("'")   # set in env
 
 SYSTEM_PROMPT = """You are ResumeWise, an expert AI career advisor for students and early-career professionals.
+
+FORMAT ALL CURRENCY VALUES IN INDIAN RUPEES (₹) and use Indian formatting (e.g. LPA, per month).
 
 Respond ONLY in valid JSON:
 {
@@ -23,10 +24,10 @@ Respond ONLY in valid JSON:
   "keywordsFound": ["k1","k2","k3","k4","k5"],
   "keywordsMissing": ["m1","m2","m3","m4"],
   "careers": [
-    {"title":"Job Title","category":"Technology","fit":"Why fit","salary":"$80k-$120k","level":"Entry","companies":["A","B","C"],"skills":["s1","s2"]}
+    {"title":"Job Title","category":"Technology","fit":"Why fit","salary":"₹8 LPA - ₹12 LPA","level":"Entry","companies":["A","B","C"],"skills":["s1","s2"]}
   ],
   "internships": [
-    {"title":"Internship Title","fit":"Why suitable","stipend":"$2000/month","companies":["Org A","Org B"]}
+    {"title":"Internship Title","fit":"Why suitable","stipend":"₹20,000/month","companies":["Org A","Org B"]}
   ],
   "skillsToAdd": [
     {"name":"Skill","priority":"High","reason":"Why it matters"}
@@ -53,22 +54,21 @@ def analyze():
     if not resume_text:
         return jsonify({'error': 'Resume text is required'}), 400
 
-    # Call Anthropic
-    headers = {
-        'Content-Type':      'application/json',
-        'x-api-key':         ANTHROPIC_KEY,
-        'anthropic-version': '2023-06-01',
-    }
+    # Call Gemini
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_KEY}"
+    headers = {'Content-Type': 'application/json'}
     body = {
-        'model':      'claude-sonnet-4-20250514',
-        'max_tokens': 2000,
-        'system':     SYSTEM_PROMPT,
-        'messages':   [{'role': 'user', 'content': f'Analyse this resume:\n\n{resume_text}'}],
+        "systemInstruction": {"parts": [{"text": SYSTEM_PROMPT}]},
+        "contents": [{"parts": [{"text": f"Analyse this resume:\n\n{resume_text}"}]}],
+        "generationConfig": {
+            "responseMimeType": "application/json",
+            "temperature": 0.0
+        }
     }
     try:
-        resp = requests.post(ANTHROPIC_URL, headers=headers, json=body, timeout=60)
+        resp = requests.post(url, headers=headers, json=body, timeout=60)
         resp.raise_for_status()
-        raw  = resp.json()['content'][0]['text']
+        raw = resp.json()['candidates'][0]['content']['parts'][0]['text']
         clean = raw.replace('```json', '').replace('```', '').strip()
         result = json.loads(clean)
     except Exception as e:

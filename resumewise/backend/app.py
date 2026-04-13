@@ -4,6 +4,7 @@ from database import init_db
 from routes.auth import auth_bp
 from routes.resume import resume_bp
 from routes.coverletter import cover_bp
+from routes.opportunities import opp_bp
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'resumewise-secret-key-change-in-production'
@@ -14,6 +15,7 @@ CORS(app, resources={r"/api/*": {"origins": "*"}})
 app.register_blueprint(auth_bp,   url_prefix='/api/auth')
 app.register_blueprint(resume_bp, url_prefix='/api/resume')
 app.register_blueprint(cover_bp,  url_prefix='/api/cover')
+app.register_blueprint(opp_bp,   url_prefix='/api/opportunities')
 
 # Init DB on startup
 with app.app_context():
